@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Download, Loader2, Volume2, History, Settings, Type, Sparkles, Pause, Square, Save, Check } from 'lucide-react';
+import { Play, Download, Loader2, Volume2, History, Settings, Type, Sparkles, Pause, Square, Save, Check, Key, Eye, EyeOff, Shield, ShieldAlert, X } from 'lucide-react';
 import { generateSpeech } from './services/geminiService';
 import { addWavHeader } from './utils/audioUtils';
 import { AudioRecord, VOICES, ACCENTS, STYLES, SPEEDS, TAGS } from './types';
@@ -16,6 +16,9 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isTestingVoice, setIsTestingVoice] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [isKeyVisible, setIsKeyVisible] = useState(false);
   const [error, setError] = useState("");
   
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
@@ -44,6 +47,11 @@ export default function App() {
         console.error("Failed to parse settings", e);
       }
     }
+
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey) {
+      setApiKey(savedKey);
+    }
   }, []);
 
   useEffect(() => {
@@ -51,6 +59,12 @@ export default function App() {
   }, [history]);
 
   const handleGenerate = async () => {
+    if (!apiKey) {
+      setError("Por favor, configura tu API KEY de Gemini en la cabecera.");
+      setShowKeyInput(true);
+      return;
+    }
+
     if (!text.trim()) {
       setError("Por favor, introduce algún texto.");
       return;
@@ -62,6 +76,7 @@ export default function App() {
     try {
       const selectedVoice = VOICES.find(v => v.id === voiceId)!;
       const base64Audio = await generateSpeech(
+        apiKey,
         text,
         selectedVoice.baseVoice,
         selectedVoice.desc,
@@ -99,6 +114,12 @@ export default function App() {
   };
 
   const handleTestVoice = async () => {
+    if (!apiKey) {
+      setError("Por favor, configura tu API KEY de Gemini en la cabecera.");
+      setShowKeyInput(true);
+      return;
+    }
+
     setIsTestingVoice(true);
     setError("");
     
@@ -106,6 +127,7 @@ export default function App() {
       const selectedVoice = VOICES.find(v => v.id === voiceId)!;
       const testText = "Hola, esta es una prueba de mi nueva voz.";
       const base64Audio = await generateSpeech(
+        apiKey,
         testText,
         selectedVoice.baseVoice,
         selectedVoice.desc,
@@ -132,6 +154,11 @@ export default function App() {
     setTimeout(() => {
       setIsSavingSettings(false);
     }, 2000);
+  };
+
+  const handleSaveKey = (val: string) => {
+    setApiKey(val);
+    localStorage.setItem('gemini_api_key', val);
   };
 
   const playAudio = (id: string, base64: string) => {
@@ -185,12 +212,73 @@ export default function App() {
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900 font-sans">
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-sm">
-            <Volume2 size={24} />
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+              <Volume2 size={24} />
+            </div>
+            <h1 className="text-xl font-semibold tracking-tight">Generador de Voz IA</h1>
           </div>
-          <h1 className="text-xl font-semibold tracking-tight">Generador de Voz IA</h1>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              {apiKey ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-100">
+                  <Shield size={14} />
+                  <span>API Key Activa</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-xs font-medium border border-red-100">
+                  <ShieldAlert size={14} />
+                  <span>Sin API Key</span>
+                </div>
+              )}
+              
+              <button 
+                onClick={() => setShowKeyInput(!showKeyInput)}
+                className={`p-2 rounded-xl transition-colors ${showKeyInput ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                title="Configurar API Key"
+              >
+                <Key size={20} />
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* API Key Input Overlay */}
+        {showKeyInput && (
+          <div className="bg-neutral-50 border-b border-neutral-200 py-4 px-4 shadow-inner">
+            <div className="max-w-2xl mx-auto">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Gemini API Key</label>
+                <button onClick={() => setShowKeyInput(false)} className="text-neutral-400 hover:text-neutral-600">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="relative">
+                <input 
+                  type={isKeyVisible ? "text" : "password"}
+                  value={apiKey}
+                  onChange={(e) => handleSaveKey(e.target.value)}
+                  placeholder="Introduce tu GEMINI_API_KEY aquí..."
+                  className="w-full bg-white border border-neutral-200 rounded-xl pl-10 pr-12 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors"
+                />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <Key size={18} />
+                </div>
+                <button 
+                  onClick={() => setIsKeyVisible(!isKeyVisible)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                >
+                  {isKeyVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <p className="mt-2 text-[10px] text-neutral-400">
+                Tu API Key se guarda localmente en tu navegador y se utiliza únicamente para las peticiones a Gemini.
+              </p>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -284,7 +372,7 @@ export default function App() {
               <div className="pt-2 flex flex-col gap-2">
                 <button
                   onClick={handleTestVoice}
-                  disabled={isTestingVoice}
+                  disabled={isTestingVoice || !apiKey}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isTestingVoice ? (
@@ -362,8 +450,8 @@ export default function App() {
             <div className="mt-4 flex justify-end">
               <button
                 onClick={handleGenerate}
-                disabled={isGenerating}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-6 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+                disabled={isGenerating || !apiKey}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-6 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
               >
                 {isGenerating ? (
                   <>

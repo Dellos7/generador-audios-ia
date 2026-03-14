@@ -1,8 +1,7 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 export async function generateSpeech(
+  apiKey: string,
   text: string,
   voiceName: string,
   voiceDescription: string,
@@ -11,6 +10,7 @@ export async function generateSpeech(
   speed: string,
   pitch: number
 ): Promise<string> {
+  const ai = new GoogleGenAI({ apiKey });
   const prompt = `Por favor, lee el siguiente texto siguiendo estrictamente estas indicaciones de voz:
 - Acento: ${accent}
 - Estilo: ${style}
