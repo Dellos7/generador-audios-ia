@@ -1,0 +1,5 @@
+{
+  "name": "Generador de Voz IA",
+  "description": "App de Text-to-Speech con voces, acentos, estilos y etiquetas personalizadas.",
+  "requestFramePermissions": []
+}
