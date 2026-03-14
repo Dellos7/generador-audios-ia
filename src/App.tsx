@@ -21,6 +21,11 @@ export default function App() {
   const [isKeyVisible, setIsKeyVisible] = useState(false);
   const [error, setError] = useState("");
   
+  const envApiKey = process.env.GEMINI_API_KEY;
+  const effectiveApiKey = apiKey || envApiKey;
+  const isUsingEnvKey = !apiKey && !!envApiKey;
+  const hasAnyKey = !!effectiveApiKey;
+
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -59,7 +64,7 @@ export default function App() {
   }, [history]);
 
   const handleGenerate = async () => {
-    if (!apiKey) {
+    if (!effectiveApiKey) {
       setError("Por favor, configura tu API KEY de Gemini en la cabecera.");
       setShowKeyInput(true);
       return;
@@ -76,7 +81,7 @@ export default function App() {
     try {
       const selectedVoice = VOICES.find(v => v.id === voiceId)!;
       const base64Audio = await generateSpeech(
-        apiKey,
+        effectiveApiKey,
         text,
         selectedVoice.baseVoice,
         selectedVoice.desc,
@@ -114,7 +119,7 @@ export default function App() {
   };
 
   const handleTestVoice = async () => {
-    if (!apiKey) {
+    if (!effectiveApiKey) {
       setError("Por favor, configura tu API KEY de Gemini en la cabecera.");
       setShowKeyInput(true);
       return;
@@ -127,7 +132,7 @@ export default function App() {
       const selectedVoice = VOICES.find(v => v.id === voiceId)!;
       const testText = "Hola, esta es una prueba de mi nueva voz.";
       const base64Audio = await generateSpeech(
-        apiKey,
+        effectiveApiKey,
         testText,
         selectedVoice.baseVoice,
         selectedVoice.desc,
@@ -225,7 +230,12 @@ export default function App() {
               {apiKey ? (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-100">
                   <Shield size={14} />
-                  <span>API Key Activa</span>
+                  <span>API Key Personal</span>
+                </div>
+              ) : isUsingEnvKey ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-100">
+                  <Shield size={14} />
+                  <span>API Key de Entorno</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-xs font-medium border border-red-100">
@@ -236,7 +246,7 @@ export default function App() {
               
               <button 
                 onClick={() => setShowKeyInput(!showKeyInput)}
-                className={`p-2 rounded-xl transition-colors ${showKeyInput ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                className={`p-2 rounded-xl transition-colors cursor-pointer ${showKeyInput ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-neutral-100 text-neutral-500'}`}
                 title="Configurar API Key"
               >
                 <Key size={20} />
@@ -372,7 +382,7 @@ export default function App() {
               <div className="pt-2 flex flex-col gap-2">
                 <button
                   onClick={handleTestVoice}
-                  disabled={isTestingVoice || !apiKey}
+                  disabled={isTestingVoice || !hasAnyKey}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isTestingVoice ? (
@@ -450,7 +460,7 @@ export default function App() {
             <div className="mt-4 flex justify-end">
               <button
                 onClick={handleGenerate}
-                disabled={isGenerating || !apiKey}
+                disabled={isGenerating || !hasAnyKey}
                 className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-6 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
               >
                 {isGenerating ? (
